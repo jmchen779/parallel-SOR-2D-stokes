@@ -2,10 +2,18 @@
 #include <stdlib.h>
 #include <omp.h>
 
-double compute_u_residual(double* u, int i);
-double compute_v_residual(double* v, int i);
-double compute_P_residual(double* P, int i);
-
+double compute_u_residual(double* u, int N, int i);
+double compute_v_residual(double* v, int N, int i);
+double compute_P_residual(double* P, int N, int i);
+double compute_u_upper_boundary_residual(double* u, int N, int i);
+double compute_u_lower_boundary_residual(double* u, int N, int i);
+double compute_u_left_boundary_residual(double* u, int N, int i);
+double compute_u_right_boundary_residual(double* u, int N, int i);
+double compute_v_left_boundary_residual(double* v, int N, int i);
+double compute_v_right_boundary_residual(double* v, int N, int i);
+double compute_P_left_boundary_residual(double* p, int N, int i);
+double compute_P_upper_boundary_residual(double* p, int N, int i);
+double compute_P_lower_boundary_residual(double* p, int N, int i);
 
 //a program that uses SOR to numerically solvethe stokes flow equations, which describe a fluid which is highly
 //viscous or slowly moving. The program takes command line arguments of N (grid size), k (number of threads)
@@ -28,27 +36,79 @@ int main(int argc, char *argv[]){
     int num_iterations = atoi(argv[++argi]);     printf("Number of iterations = %d\n", num_iterations);    
     //think these need to be flipped
     // x velocity is of the shape N x N -1, (N rows, N-1 Columns)
-    double *u = (double *)malloc(N*(N-1)*sizeof(double));
+    double *u = (double *)calloc(N*(N-1), sizeof(double));
     //y velocity is of the shape N-1 x N , (N-1 rows, N Columns)
-    double *v = (double *)malloc(N*(N-1)*sizeof(double));
+    double *v = (double *)calloc(N*(N-1), sizeof(double));
     //pressure is of the shape N-1xN-1
-    double *p = (double *)malloc((N-1)*(N-1)*sizeof(double));
+    double *p = (double *)calloc((N-1)*(N-1), sizeof(double));
     double delta_x =  1.0 / (N-1);
     double residual_u = 100.0;
     double residual_v = 100.0;
     double residual_P = 100.0;
+    int k = 0;
     //main loop
-    while(residual_u > tol && residual_v > tol && residual_P > tol){
+    while(k < num_iterations && residual_u > tol && residual_v > tol && residual_P > tol){
         int i, j;
         #pragma omp parallel num_threads(k) shared(N, w, P, u, v, p) private(i, j) reduction(max:residual_u, residual_v, residual_P)
         //u loop for red cells
         #pragma omp for schedule(static, 1)
-        for (i = 0; i < N-1; i+=2){
-            for (j = 1; j < N; j+=2){
-                int idx = i + j*(N-1)
+        for (i = 0; i < N; i++){
+            for (j = (i % 2); j < N-1; j+=2){
+                //TODO: implement boundary cases here
+                //update u, find the maximum residual
+                int idx = i*N + j;
+                double temp_u_residual;
+                // maybe integrate these into special cases?
+                //first special boundry: top left corner
+                if ((i == 0) && (j==0)){
+                  //TODO 
+                  //Implement the formula 
+                }
+                //bottom left corner
+                else if ((i == N-1) && (j==0)){
+                  //TODO 
+                  //Implement the formula 
+                }
+                //top right corner
+                else if ((i == 0) && (j==N-2)){
+                  //TODO 
+                  //Implement the formula 
+                }
+                //bottom right corner
+                else if ((i == N-1) && (j==N-2)){
+                  //TODO 
+                  //Implement the formula 
+                }
+                //left face update
+                else if (j == 0){
+                    temp_u_residual = compute_u_left_boundary_residual(u, N, idx);
+                }
+                //right face update
+                else if (j == N-2){
+                    temp_u_residual = compute_u_right_boundary_residual(u, N, idx);
+                }
+                //upper face
+                else if (i == 0){
+                    temp_u_residual = compute_u_upper_boundary_residual(u, N, idx);
+                }
+                //lower face
+                else if (i == N-1){
+                    temp_u_residual = compute_u_lower_boundary_residual(u, N, idx);
+                }
+
+                else{
+                temp_u_residual = compute_u_residual(u, N, idx);
+                u[idx] += w*temp_u_residual;
+                if (temp_u_residual > residual_u){
+                    residual_u = temp_u_residual;
+                }
+            }
             }
 
         }
+
+
+        k++;
     }
     //free arrays
     free(u);
