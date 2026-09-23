@@ -49,178 +49,182 @@ int main(int argc, char *argv[]){
     //main loop
     while((l < num_iterations) || (residual_u > tol && residual_v > tol && residual_P > tol)){
         int i, j, q;
-        #pragma omp parallel num_threads(k) shared(N, w, P, u, v, p, q) private(i, j) reduction(max:residual_u, residual_v, residual_P)
-        {
-        //u loop for red cells
-        #pragma omp for schedule(static, 1)
-        for (i = 0; i < N-1; i++){
-            for (j = (i% 2); j < N; j+=2){
-                //TODO: implement boundary cases here
-                //update u, find the maximum residual
-                int idx = i*N + j;
-                double temp_u_residual;
-                // maybe integrate these into special cases?
-                //first special boundry: top left corner
-                if ((i == 0) && (j==0)){
-                  //TODO 
-                  //Implement the formula 
+        //can sttart red black ordering here
+        for (int z =0; z < 2; z++){
+             #pragma omp parallel num_threads(k) shared(N, w, P, u, v, p, q) private(i, j) reduction(max:residual_u, residual_v, residual_P)
+            {
+            //u loop for red cells
+            #pragma omp for schedule(static, 1)
+            for (i = 0; i < N-1; i++){
+                for (j = ((i+z)% 2); j < N; j+=2){
+                    //TODO: implement boundary cases here
+                    //update u, find the maximum residual
+                    int idx = i*N + j;
+                    double temp_u_residual;
+                    // maybe integrate these into special cases?
+                    //first special boundry: top left corner
+                    if ((i == 0) && (j==0)){
+                    //TODO 
+                    //Implement the formula 
+                    }
+                    //bottom left corner
+                    else if ((i == N-2) && (j==0)){
+                    //TODO 
+                    //Implement the formula 
+                    }
+                    //top right corner
+                    else if ((i == 0) && (j==N-1)){
+                    //TODO 
+                    //Implement the formula 
+                    }
+                    //bottom right corner
+                    else if ((i == N-2) && (j==N-1)){
+                    //TODO 
+                    //Implement the formula 
+                    }
+                    //left face update
+                    else if (j == 0){
+                        temp_u_residual = compute_u_left_boundary_residual(u, N, idx);
+                    }
+                    //right face update
+                    else if (j == N-1){
+                        temp_u_residual = compute_u_right_boundary_residual(u, N, idx);
+                    }
+                    //upper face
+                    else if (i == 0){
+                        temp_u_residual = compute_u_upper_boundary_residual(u, N, idx);
+                    }
+                    //lower face
+                    else if (i == N-2){
+                        temp_u_residual = compute_u_lower_boundary_residual(u, N, idx);
+                    }
+
+                    else{
+                    temp_u_residual = compute_u_residual(u, N, idx);
+                    u[idx] += w*temp_u_residual;
+                    if (temp_u_residual > residual_u){
+                        residual_u = temp_u_residual;
+                    }
                 }
-                //bottom left corner
-                else if ((i == N-2) && (j==0)){
-                  //TODO 
-                  //Implement the formula 
-                }
-                //top right corner
-                else if ((i == 0) && (j==N-1)){
-                  //TODO 
-                  //Implement the formula 
-                }
-                //bottom right corner
-                else if ((i == N-2) && (j==N-1)){
-                  //TODO 
-                  //Implement the formula 
-                }
-                //left face update
-                else if (j == 0){
-                    temp_u_residual = compute_u_left_boundary_residual(u, N, idx);
-                }
-                //right face update
-                else if (j == N-1){
-                    temp_u_residual = compute_u_right_boundary_residual(u, N, idx);
-                }
-                //upper face
-                else if (i == 0){
-                    temp_u_residual = compute_u_upper_boundary_residual(u, N, idx);
-                }
-                //lower face
-                else if (i == N-2){
-                    temp_u_residual = compute_u_lower_boundary_residual(u, N, idx);
                 }
 
-                else{
-                temp_u_residual = compute_u_residual(u, N, idx);
-                u[idx] += w*temp_u_residual;
-                if (temp_u_residual > residual_u){
-                    residual_u = temp_u_residual;
-                }
             }
-            }
+            // v loop, N-1 columns by N rows
+            #pragma omp for schedule(static, 1)
+            for (i = 0; i < N; i++){
+                for (j = ((i+z) % 2); j < N-1; j+=2){
+                    //TODO: implement boundary cases here
+                    //update u, find the maximum residual
+                    int idx = i*N + j;
+                    double temp_v_residual;
+                    // maybe integrate these into special cases?
+                    //first special boundry: top left corner
+                    if ((i == 0) && (j==0)){
+                    //TODO 
+                    //Implement the formula 
+                    }
+                    //bottom left corner
+                    else if ((i == N-1) && (j==0)){
+                    //TODO 
+                    //Implement the formula 
+                    }
+                    //top right corner
+                    else if ((i == 0) && (j==N-2)){
+                    //TODO 
+                    //Implement the formula 
+                    }
+                    //bottom right corner
+                    else if ((i == N-1) && (j==N-2)){
+                    //TODO 
+                    //Implement the formula 
+                    }
+                    //left face update
+                    else if (j == 0){
+                        temp_v_residual = compute_v_left_boundary_residual(v, N, idx);
+                    }
+                    //right face update
+                    else if (j == N-2){
+                        temp_v_residual = compute_v_right_boundary_residual(v, N, idx);
+                    }
+                    //upper face
+                    else if (i == 0){
+                        temp_v_residual = compute_v_upper_boundary_residual(v, N, idx);
+                    }
+                    //lower face
+                    else if (i == N-1){
+                        temp_v_residual = compute_v_lower_boundary_residual(v, N, idx);
+                    }
 
+                    else{
+                    temp_v_residual = compute_v_residual(v, N, idx);
+                    v[idx] += w*temp_v_residual;
+                    if (temp_v_residual > residual_v){
+                        residual_v = temp_v_residual;
+                    }
+                }
+                }
+
+            }
+            //P loop, P is N-1 x N-1
+            #pragma omp for schedule(static, 1)
+            for (i = 0; i < N-1; i++){
+                for (j = ((i+z) % 2); j < N-1; j+=2){
+                    //TODO: implement boundary cases here
+                    //update P, find the maximum residual
+                    int idx = i*N + j;
+                    double temp_P_residual;
+                    // maybe integrate these into special cases?
+                    //first special boundry: top left corner
+                    if ((i == 0) && (j==0)){
+                    //TODO 
+                    //Implement the formula 
+                    }
+                    //bottom left corner
+                    else if ((i == N-2) && (j==0)){
+                    //TODO 
+                    //Implement the formula 
+                    }
+                    //top right corner
+                    else if ((i == 0) && (j==N-2)){
+                    //TODO 
+                    //Implement the formula 
+                    }
+                    //bottom right corner
+                    else if ((i == N-2) && (j==N-2)){
+                    //TODO 
+                    //Implement the formula 
+                    }
+                    //left face update
+                    else if (j == 0){
+                        temp_P_residual = compute_P_left_boundary_residual(p, N, idx);
+                    }
+                    //right face update
+                    else if (j == N-2){
+                        temp_P_residual = compute_P_right_boundary_residual(p, N, idx);
+                    }
+                    //upper face
+                    else if (i == 0){
+                        temp_P_residual = compute_P_upper_boundary_residual(p, N, idx);
+                    }
+                    //lower face
+                    else if (i == N-2){
+                        temp_P_residual = compute_P_lower_boundary_residual(p, N, idx);
+                    }
+
+                    else{
+                    temp_P_residual = compute_P_residual(p, N, idx);
+                    p[idx] += w*temp_P_residual;
+                    if (temp_P_residual > residual_P){
+                        residual_P = temp_P_residual;
+                    }
+                }
+                }
+
+            }
+            //add in the black cells here, or some logic that can run through them all at the same time
         }
-        // v loop, N-1 columns by N rows
-         #pragma omp for schedule(static, 1)
-        for (i = 0; i < N; i++){
-            for (j = (i % 2); j < N-1; j+=2){
-                //TODO: implement boundary cases here
-                //update u, find the maximum residual
-                int idx = i*N + j;
-                double temp_v_residual;
-                // maybe integrate these into special cases?
-                //first special boundry: top left corner
-                if ((i == 0) && (j==0)){
-                  //TODO 
-                  //Implement the formula 
-                }
-                //bottom left corner
-                else if ((i == N-1) && (j==0)){
-                  //TODO 
-                  //Implement the formula 
-                }
-                //top right corner
-                else if ((i == 0) && (j==N-2)){
-                  //TODO 
-                  //Implement the formula 
-                }
-                //bottom right corner
-                else if ((i == N-1) && (j==N-2)){
-                  //TODO 
-                  //Implement the formula 
-                }
-                //left face update
-                else if (j == 0){
-                    temp_v_residual = compute_v_left_boundary_residual(v, N, idx);
-                }
-                //right face update
-                else if (j == N-2){
-                    temp_v_residual = compute_v_right_boundary_residual(v, N, idx);
-                }
-                //upper face
-                else if (i == 0){
-                    temp_v_residual = compute_v_upper_boundary_residual(v, N, idx);
-                }
-                //lower face
-                else if (i == N-1){
-                    temp_v_residual = compute_v_lower_boundary_residual(v, N, idx);
-                }
-
-                else{
-                temp_v_residual = compute_v_residual(v, N, idx);
-                v[idx] += w*temp_v_residual;
-                if (temp_v_residual > residual_v){
-                    residual_v = temp_v_residual;
-                }
-            }
-            }
-
         }
-        //P loop, P is N-1 x N-1
-        #pragma omp for schedule(static, 1)
-        for (i = 0; i < N-1; i++){
-            for (j = (i % 2); j < N-1; j+=2){
-                //TODO: implement boundary cases here
-                //update P, find the maximum residual
-                int idx = i*N + j;
-                double temp_P_residual;
-                // maybe integrate these into special cases?
-                //first special boundry: top left corner
-                if ((i == 0) && (j==0)){
-                  //TODO 
-                  //Implement the formula 
-                }
-                //bottom left corner
-                else if ((i == N-2) && (j==0)){
-                  //TODO 
-                  //Implement the formula 
-                }
-                //top right corner
-                else if ((i == 0) && (j==N-2)){
-                  //TODO 
-                  //Implement the formula 
-                }
-                //bottom right corner
-                else if ((i == N-2) && (j==N-2)){
-                  //TODO 
-                  //Implement the formula 
-                }
-                //left face update
-                else if (j == 0){
-                    temp_P_residual = compute_P_left_boundary_residual(p, N, idx);
-                }
-                //right face update
-                else if (j == N-2){
-                    temp_P_residual = compute_P_right_boundary_residual(p, N, idx);
-                }
-                //upper face
-                else if (i == 0){
-                    temp_P_residual = compute_P_upper_boundary_residual(p, N, idx);
-                }
-                //lower face
-                else if (i == N-2){
-                    temp_P_residual = compute_P_lower_boundary_residual(p, N, idx);
-                }
-
-                else{
-                temp_P_residual = compute_P_residual(p, N, idx);
-                p[idx] += w*temp_P_residual;
-                if (temp_P_residual > residual_P){
-                    residual_P = temp_P_residual;
-                }
-            }
-            }
-
-        }
-        //add in the black cells here, or some logic that can run through them all at the same time
-    }
+       
     
         l++;
     }
